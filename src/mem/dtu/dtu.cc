@@ -58,7 +58,6 @@ static const char *cmdNames[] =
     "ACK_MSG",
     "SLEEP",
     "CLEAR_IRQ",
-    "DEBUG_MSG",
     "PRINT",
 };
 
@@ -285,13 +284,10 @@ Dtu::executeCommand(PacketPtr pkt)
     cmdId = nextCmdId++;
     commands[static_cast<size_t>(cmd.opcode)]++;
 
-    if(cmd.opcode != Command::DEBUG_MSG)
-    {
-        assert(cmd.epid < numEndpoints);
-        DPRINTF(DtuCmd, "Starting command %s with EP=%u, flags=%#x (id=%llu)\n",
-                cmdNames[static_cast<size_t>(cmd.opcode)], cmd.epid,
-                cmd.flags, cmdId);
-    }
+    assert(cmd.epid < numEndpoints);
+    DPRINTF(DtuCmd, "Starting command %s with EP=%u, flags=%#x (id=%llu)\n",
+            cmdNames[static_cast<size_t>(cmd.opcode)], cmd.epid,
+            cmd.flags, cmdId);
 
     switch (cmd.opcode)
     {
@@ -323,10 +319,6 @@ Dtu::executeCommand(PacketPtr pkt)
             break;
         case Command::PRINT:
             printLine(regs().get(CmdReg::DATA_ADDR), regs().get(CmdReg::DATA_SIZE));
-            finishCommand(Error::NONE);
-            break;
-        case Command::DEBUG_MSG:
-            DPRINTF(Dtu, "DEBUG %#x\n", regs().get(CmdReg::OFFSET));
             finishCommand(Error::NONE);
             break;
         default:
@@ -381,7 +373,7 @@ Dtu::abortCommand()
     Error err;
     if (cmd.opcode == Command::IDLE)
     {
-        regs().set(CmdReg::COMMAND, Command::DEBUG_MSG);
+        regs().set(CmdReg::COMMAND, Command::PRINT);
         cmdId = 1;
         err = Error::NONE;
     }
@@ -450,12 +442,9 @@ Dtu::finishCommand(Error error)
     if (cmd.opcode == Command::SLEEP)
         stopSleep();
 
-    if (cmd.opcode != Command::DEBUG_MSG)
-    {
-        DPRINTF(DtuCmd, "Finished command %s with EP=%u, flags=%#x (id=%llu) -> %u\n",
-                cmdNames[static_cast<size_t>(cmd.opcode)], cmd.epid, cmd.flags,
-                cmdId, static_cast<uint>(error));
-    }
+    DPRINTF(DtuCmd, "Finished command %s with EP=%u, flags=%#x (id=%llu) -> %u\n",
+            cmdNames[static_cast<size_t>(cmd.opcode)], cmd.epid, cmd.flags,
+            cmdId, static_cast<uint>(error));
 
     // let the SW know that the command is finished
     unsigned bits = numCmdOpcodeBits + numCmdFlagsBits + numCmdEpBits;

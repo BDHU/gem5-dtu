@@ -63,6 +63,7 @@
 #include "debug/PseudoInst.hh"
 #include "debug/Quiesce.hh"
 #include "debug/WorkItems.hh"
+#include "debug/Dtu.hh"
 #include "dev/net/dist_iface.hh"
 #include "params/BaseCPU.hh"
 #include "sim/full_system.hh"
@@ -217,6 +218,10 @@ pseudoInst(ThreadContext *tc, uint8_t func, uint8_t subfunc)
       case 0x62: // distToggleSync_func
         togglesync(tc);
         break;
+
+      /* print current timestamp */
+      case 0x63:
+        return getCycles(tc, args[0]);
 
       default:
         warn("Unhandled m5 op: 0x%x\n", func);
@@ -719,6 +724,13 @@ translate(ThreadContext *tc, uint64_t vaddr)
     Addr paddr;
     tc->getProcessPtr()->pTable->translate(vaddr, paddr);
     return paddr;
+}
+
+uint64_t
+getCycles(ThreadContext *tc, uint64_t msg)
+{
+    DPRINTFS(Dtu, tc->getCpuPtr(), "DEBUG %#x\n", msg);
+    return tc->getCpuPtr()->curCycle();
 }
 
 } // namespace PseudoInst
