@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 #
 # gem5img.py
 # Script for managing a gem5 disk image.
@@ -8,7 +8,7 @@ from optparse import OptionParser
 import os
 from os import environ as env
 import string
-from subprocess import CalledProcessError, Popen, PIPE, STDOUT
+from subprocess import CalledProcessError, Popen, PIPE, STDOUT, check_output, call
 from sys import exit, argv
 
 
@@ -128,21 +128,22 @@ def findPartOffset(devFile, fileName, partition):
     dev = LoopbackDevice()
     dev.setup(fileName)
     # Dump the partition information.
-    command = [findProg('sfdisk'), '-d', dev.devFile]
+    command = [findProg('fdisk'), '-l', dev.devFile]
     (out, returncode) = privOutput(command)
     if returncode != 0:
         print out
         exit(returncode)
     lines = out.splitlines()
+
     # Make sure the first few lines of the output look like what we expect.
-    assert(lines[0][0] == '#')
-    assert(lines[1] == 'unit: sectors')
-    assert(lines[2] == '')
+    assert(lines[0][0:4] == 'Disk')
+    assert(lines[8][0:5] == '/dev/')
+
     # This line has information about the first partition.
-    chunks = lines[3].split()
+    chunks = lines[8].split()
     # The fourth chunk is the offset of the partition in sectors followed by
     # a comma. We drop the comma and convert that to an integer.
-    sectors = string.atoi(chunks[3][:-1])
+    sectors = string.atoi(chunks[2])
     # Free the loopback device and return an answer.
     dev.destroy()
     return sectors * BlockSize
@@ -282,13 +283,20 @@ partitionCom = Command('partition', 'Partition part of "init".',
                        [('file', 'Name of the image file.')])
 
 def partition(dev, cylinders, heads, sectors):
-    # Use fdisk to partition the device
-    comStr = '0,\n;\n;\n;\n'
-    return runPriv([findProg('sfdisk'), '--no-reread', '-D', \
-                   '-C', "%d" % cylinders, \
-                   '-H', "%d" % heads, \
-                   '-S', "%d" % sectors, \
-                   str(dev)], inputVal=comStr)
+    tmpfile = check_output("mktemp").rstrip()
+    # build command file for fdisk
+    with open(tmpfile, "w") as f:
+        f.write('n\np\n1\n\n\na\n1\nw\n')
+
+    # create partitions with fdisk
+    with open(tmpfile, "r") as fin:
+        p = Popen(
+            ["sudo", "fdisk", "-u", "-C", str(cylinders), "-H", str(heads), "-S", str(sectors), str(dev)], stdin=fin
+        )
+        p.wait()
+
+    call(["rm", "-f", tmpfile])
+    return 0
 
 def partitionComFunc(options, args):
     (path,) = args
