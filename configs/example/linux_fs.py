@@ -370,7 +370,7 @@ test_sys.cpu[0].dcache.hit_latency = 4
 test_sys.cpu[0].dcache.response_latency = 4
 
 if hasattr(test_sys, 'l2'):
-    test_sys.l2.size = '256kB'
+    test_sys.l2.size = '512kB'
     test_sys.l2.hit_latency = 12
     test_sys.l2.response_latency = 12
 
