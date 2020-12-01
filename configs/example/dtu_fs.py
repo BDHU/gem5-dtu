@@ -9,9 +9,9 @@
 #    list of conditions and the following disclaimer.
 # 2. Redistributions in binary form must reproduce the above copyright notice,
 #    this list of conditions and the following disclaimer in the documentation
-#    and/or other materials provided with the distribution.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+#    and/or other materials provided with the distribution.  #
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+# CONTRIBUTORS "AS IS" AND
 # ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
 # DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
@@ -108,7 +108,7 @@ def getOptions():
                       help="type of cpu to run with")
 
     parser.add_option("--isa", type="choice", default="x86_64",
-                      choices=['arm', 'x86_64'],
+                      choices=['arm', 'x86_64', 'aarch64'],
                       help="The ISA to use")
 
     parser.add_option("-c", "--cmd", default="", type="string",
@@ -370,8 +370,10 @@ def createCorePE(noc, options, no, cmdline, memPE, l1size=None, l2size=None,
                  dtupos=0, mmu=False, spmsize='8MB'):
     CPUClass = CpuConfig.get(options.cpu_type)
 
-    sysType = M3ArmSystem if options.isa == 'arm' else M3X86System
-    con = ArmConnector if options.isa == 'arm' else X86Connector
+    sysType = M3ArmSystem if options.isa == 'arm' or options.isa == 'aarch64'
+      else M3X86System
+    con = ArmConnector if options.isa == 'arm' or options.isa == 'aarch64'
+      else X86Connector
 
     # the DTU can't do address translation behind a cache
     assert dtupos == 0 or mmu
@@ -812,7 +814,7 @@ def runSimulation(root, options, pes):
                     size |= 5 << 3 # fft accelerator
                 elif int(pe.accel.logic.algorithm) == 1:
                     size |= 6 << 3 # rot13 accelerator
-            elif options.isa == 'arm':
+            elif options.isa == 'arm' or options.isa == 'aarch64':
                 size |= 2 << 3 # arm
             else:
                 size |= 1 << 3 # x86
