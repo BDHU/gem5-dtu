@@ -370,10 +370,12 @@ def createCorePE(noc, options, no, cmdline, memPE, l1size=None, l2size=None,
                  dtupos=0, mmu=False, spmsize='8MB'):
     CPUClass = CpuConfig.get(options.cpu_type)
 
-    sysType = M3ArmSystem if options.isa == 'arm' or options.isa == 'aarch64'
-      else M3X86System
-    con = ArmConnector if options.isa == 'arm' or options.isa == 'aarch64'
-      else X86Connector
+    if options.isa == 'arm' or options.isa == 'aarch64' :
+      sysType = M3ArmSystem
+      con = ArmConnector
+    else:
+      sysType = M3X86System
+      con = X86Connector
 
     # the DTU can't do address translation behind a cache
     assert dtupos == 0 or mmu
